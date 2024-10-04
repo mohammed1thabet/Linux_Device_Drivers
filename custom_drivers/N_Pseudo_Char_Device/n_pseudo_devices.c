@@ -295,8 +295,48 @@ ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t c
 
 loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence)
 {
+    struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = data_ptr->size;
+    loff_t new_pos;
 
-    return 0;
+    pr_info("pseudo_llseek method called, current f_pos:%lld\n", file_ptr->f_pos);
+    
+    switch (whence)
+    {
+        case SEEK_SET:
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if((offset > size) || (offset < 0))
+                return -EINVAL;
+
+            file_ptr->f_pos = offset;
+        break;
+
+        case SEEK_CUR:
+            new_pos = file_ptr->f_pos +offset;
+            
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if( (new_pos > size) || (new_pos < 0) )
+                return -EINVAL;
+
+            file_ptr->f_pos = new_pos;
+        break;
+        
+        case SEEK_END:
+            new_pos = size + offset;
+
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if( (new_pos > size) || (new_pos < 0) )
+                return -EINVAL;
+
+            file_ptr->f_pos = new_pos;
+        break;
+        
+        default:
+            return -EINVAL;
+        break;
+    }
+    pr_info("new f_pos:%lld\n", file_ptr->f_pos);
+	return file_ptr->f_pos;
 }
 
 int check_file_permission()
