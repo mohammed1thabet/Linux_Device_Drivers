@@ -353,14 +353,14 @@ int check_file_permission(int device_permission, fmode_t request_mode)
     /*if the device is read only, check if open request mode is read only*/
     if(device_permission == RONLY_PERMISSION)
     {
-        if((request_mode && FMODE_READ) && !(request_mode && FMODE_WRITE))
+        if((request_mode & FMODE_READ) && !(request_mode & FMODE_WRITE))
             return 0;
     }
 
     /*if the device is write only, check if open request mode is write only*/
     if(device_permission == WONLY_PERMISSION)
     {
-        if((request_mode && FMODE_WRITE) && !(request_mode && FMODE_READ))
+        if((request_mode & FMODE_WRITE) && !(request_mode & FMODE_READ))
             return 0;
     }
 
