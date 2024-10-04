@@ -29,7 +29,7 @@ static char device4_mem[DEV4_MEM_SIZE];
 /*device private data*/
 struct dev_priv_data
 {
-        char* buffer;
+        char* data_buffer;
         size_t size;
         const char* ID;
         /*firs bit for read permission and second bit for write permission*/
@@ -58,30 +58,30 @@ struct drv_priv_data drv_data = {
     {
         [0] = 
         {
-            .buffer     = device1_mem,
-            .size       = DEV1_MEM_SIZE,
-            .ID         = "1024_BYTE_RONLY_MEM",
+            .data_buffer = device1_mem,
+            .size        = DEV1_MEM_SIZE,
+            .ID          = "1024_BYTE_RONLY_MEM",
             .permission  = 0b01
         },
         [1] = 
         {
-            .buffer     = device2_mem,
-            .size       = DEV2_MEM_SIZE,
-            .ID         = "1000_BYTE_RW_MEM",
+            .data_buffer = device2_mem,
+            .size        = DEV2_MEM_SIZE,
+            .ID          = "1000_BYTE_RW_MEM ",
             .permission  = 0b11
         },
         [2] = 
         {
-            .buffer     = device3_mem,
-            .size       = DEV3_MEM_SIZE,
-            .ID         = "512_BYTE_WONLY_MEM",
+            .data_buffer = device3_mem,
+            .size        = DEV3_MEM_SIZE,
+            .ID          = "512_BYTE_WONLY_MEM",
             .permission  = 0b10
         },
         [3] = 
         {
-            .buffer     = device4_mem,
-            .size       = DEV4_MEM_SIZE,
-            .ID         = "512_BYTE_RW_MEM",
+            .data_buffer = device4_mem,
+            .size        = DEV4_MEM_SIZE,
+            .ID          = "512_BYTE_RW_MEM",
             .permission  = 0b11
         }
     }
@@ -244,14 +244,53 @@ int pseudo_release (struct inode *inode_ptr, struct file *file_ptr)
 
 ssize_t pseudo_read (struct file *file_ptr, char __user *buffer, size_t count, loff_t *f_pos)
 {
+    struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = data_ptr->size;
 
-    return 0;
+    pr_info("pseudo_read method called, count:%zu, file position:%lld\n", count, *f_pos);
+
+    /*if the count exeeds the memory size truncate the count*/
+    if((count + *f_pos) > size)
+        count = size - *f_pos;
+    
+    /*copy data, note that this code is not thread safe*/
+    if(copy_to_user(buffer, data_ptr->data_buffer+(*f_pos), count) > 0)
+        return -EFAULT;
+
+    /*update file position*/
+    *f_pos = *f_pos + count;
+
+    pr_info("number of bytes have been read%zu, file position:%lld\n", count, *f_pos);
+	return count;
 }
 
 ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t count, loff_t *f_pos)
 {
+    struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = size;
 
-    return 0;
+	pr_info("pseudo_write method called, count:%zu, file position:%lld\n", count, *f_pos);
+
+    if(*f_pos == size)
+    {
+        /*EOF*/
+        pr_info("no space left\n");
+        return -ENOMEM;
+    }
+    
+    /*if the count exeeds the memory size truncate the count*/
+    if((count + *f_pos) > size)
+        count = size - *f_pos;
+    
+    /*copy data, note that this code is not thread safe*/
+    if(copy_from_user(data_ptr->data_buffer+(*f_pos), buffer, count) > 0)
+        return -EFAULT;
+
+    /*update file position*/
+    *f_pos = *f_pos + count;
+        
+    pr_info("number of bytes have been written%zu, file position:%lld\n", count, *f_pos);
+	return count;
 }
 
 loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence)
