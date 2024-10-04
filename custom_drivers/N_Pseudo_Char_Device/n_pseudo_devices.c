@@ -26,10 +26,10 @@
 #define RW_PERMISSION           0b11
 
 /*devices pseudo memory*/
-static char device1_mem[DEV1_MEM_SIZE];
-static char device2_mem[DEV2_MEM_SIZE];
-static char device3_mem[DEV3_MEM_SIZE];
-static char device4_mem[DEV4_MEM_SIZE];
+static char device0_mem[DEV1_MEM_SIZE];
+static char device1_mem[DEV2_MEM_SIZE];
+static char device2_mem[DEV3_MEM_SIZE];
+static char device3_mem[DEV4_MEM_SIZE];
 
 /*device private data*/
 struct dev_priv_data
@@ -63,28 +63,28 @@ struct drv_priv_data drv_data = {
     {
         [0] = 
         {
-            .data_buffer = device1_mem,
+            .data_buffer = device0_mem,
             .size        = DEV1_MEM_SIZE,
             .ID          = "1024_BYTE_RONLY_MEM",
             .permission  = RONLY_PERMISSION
         },
         [1] = 
         {
-            .data_buffer = device2_mem,
+            .data_buffer = device1_mem,
             .size        = DEV2_MEM_SIZE,
             .ID          = "1000_BYTE_RW_MEM ",
             .permission  = RW_PERMISSION
         },
         [2] = 
         {
-            .data_buffer = device3_mem,
+            .data_buffer = device2_mem,
             .size        = DEV3_MEM_SIZE,
             .ID          = "512_BYTE_WONLY_MEM",
             .permission  = WONLY_PERMISSION
         },
         [3] = 
         {
-            .data_buffer = device4_mem,
+            .data_buffer = device3_mem,
             .size        = DEV4_MEM_SIZE,
             .ID          = "512_BYTE_RW_MEM",
             .permission  = RW_PERMISSION
