@@ -12,10 +12,10 @@
 #include <linux/uaccess.h>
 
 
+#define DEV0_MEM_SIZE           1024
 #define DEV1_MEM_SIZE           1024
-#define DEV2_MEM_SIZE           1024
+#define DEV2_MEM_SIZE           512
 #define DEV3_MEM_SIZE           512
-#define DEV4_MEM_SIZE           512
 
 #define MINOR_NUM_START_NUMBER  0
 #define NUMBER_OF_DEVICES       4
@@ -26,10 +26,10 @@
 #define RW_PERMISSION           0b11
 
 /*devices pseudo memory*/
-static char device0_mem[DEV1_MEM_SIZE] = "This is a dummy data for the pseudo read-only memory device";
-static char device1_mem[DEV2_MEM_SIZE];
-static char device2_mem[DEV3_MEM_SIZE];
-static char device3_mem[DEV4_MEM_SIZE];
+static char device0_mem[DEV0_MEM_SIZE] = "This is a dummy data for the pseudo read-only memory device";
+static char device1_mem[DEV1_MEM_SIZE];
+static char device2_mem[DEV2_MEM_SIZE];
+static char device3_mem[DEV3_MEM_SIZE];
 
 /*device private data*/
 struct dev_priv_data
