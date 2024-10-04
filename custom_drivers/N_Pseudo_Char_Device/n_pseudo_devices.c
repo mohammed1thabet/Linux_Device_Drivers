@@ -32,9 +32,9 @@ struct dev_priv_data
         char* buffer;
         size_t size;
         const char* ID;
-        /*firs bit for read permition and second bit for write permition*/
-        /* example: 0b11 means RW permition                             */
-        int permition;
+        /*firs bit for read permission and second bit for write permission*/
+        /* example: 0b11 means RW permission                             */
+        int permission;
         struct cdev dev_cdev;
         struct device *dev_ptr;
 };
@@ -61,38 +61,40 @@ struct drv_priv_data drv_data = {
             .buffer     = device1_mem,
             .size       = DEV1_MEM_SIZE,
             .ID         = "1024_BYTE_RONLY_MEM",
-            .permition  = 0b01
+            .permission  = 0b01
         },
         [1] = 
         {
             .buffer     = device2_mem,
             .size       = DEV2_MEM_SIZE,
             .ID         = "1000_BYTE_RW_MEM",
-            .permition  = 0b11
+            .permission  = 0b11
         },
         [2] = 
         {
             .buffer     = device3_mem,
             .size       = DEV3_MEM_SIZE,
             .ID         = "512_BYTE_WONLY_MEM",
-            .permition  = 0b10
+            .permission  = 0b10
         },
         [3] = 
         {
             .buffer     = device4_mem,
             .size       = DEV4_MEM_SIZE,
             .ID         = "512_BYTE_RW_MEM",
-            .permition  = 0b11
+            .permission  = 0b11
         }
     }
 };
-
 /*file operations*/
-loff_t pseudo_llseek (struct file *filePtr, loff_t offset, int whence);
-ssize_t pseudo_read (struct file *filePtr, char __user *buffer, size_t count, loff_t *f_pos);
-ssize_t pseudo_write (struct file *filePtr, const char __user *buffer, size_t count, loff_t *f_pos);\
-int pseudo_open (struct inode *inodePtr, struct file *filePtr);
-int pseudo_release (struct inode *inodePtr, struct file *filePtr);
+loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence);
+ssize_t pseudo_read (struct file *file_ptr, char __user *buffer, size_t count, loff_t *f_pos);
+ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t count, loff_t *f_pos);\
+int pseudo_open (struct inode *inode_ptr, struct file *file_ptr);
+int pseudo_release (struct inode *inode_ptr, struct file *file_ptr);
+
+
+int check_file_permission (void);
 
 /*file_operations struct*/
 struct file_operations pseudo_fops = {
@@ -205,30 +207,60 @@ static void __exit pseudo_deinit(void)
 
 }
 
-int pseudo_open (struct inode *inodePtr, struct file *filePtr)
+int pseudo_open (struct inode *inode_ptr, struct file *file_ptr)
 {
+    int err;
+    int minor_num;
+    struct dev_priv_data *dev_data;
+
     pr_info("pseudo_open method called:\n");
-	return 0;
+
+    minor_num = MINOR(inode_ptr->i_rdev);
+    pr_info("minor number:%d:\n", minor_num);
+    
+    /*extract pointer to device data using cdev*/
+    dev_data = container_of(inode_ptr->i_cdev, struct dev_priv_data, dev_cdev);
+
+    /*update file private data pointer with the device data pointer*/
+    file_ptr->private_data = dev_data;
+
+    err = check_file_permission();
+    
+    if(err == 0)
+    {
+        pr_info("file opened successfully\n");
+    }
+    else
+    {
+        pr_info("file open failed\n");
+    }
+	return err;
 }
-int pseudo_release (struct inode *inodePtr, struct file *filePtr)
+int pseudo_release (struct inode *inode_ptr, struct file *file_ptr)
 {
     pr_info("pseudo_release method called:\n");
 	return 0;
 }
 
-ssize_t pseudo_read (struct file *filePtr, char __user *buffer, size_t count, loff_t *f_pos)
+ssize_t pseudo_read (struct file *file_ptr, char __user *buffer, size_t count, loff_t *f_pos)
 {
-    
+
     return 0;
 }
 
-ssize_t pseudo_write (struct file *filePtr, const char __user *buffer, size_t count, loff_t *f_pos)
+ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t count, loff_t *f_pos)
 {
-	
+
     return 0;
 }
 
-loff_t pseudo_llseek (struct file *filePtr, loff_t offset, int whence)
+loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence)
+{
+
+    return 0;
+}
+
+int check_file_permission()
 {
     
     return 0;
