@@ -20,6 +20,11 @@
 #define MINOR_NUM_START_NUMBER  0
 #define NUMBER_OF_DEVICES       4
 
+/*device permission*/
+#define RONLY_PERMISSION        0b01
+#define WONLY_PERMISSION        0b10
+#define RW_PERMISSION           0b11
+
 /*devices pseudo memory*/
 static char device1_mem[DEV1_MEM_SIZE];
 static char device2_mem[DEV2_MEM_SIZE];
@@ -61,28 +66,28 @@ struct drv_priv_data drv_data = {
             .data_buffer = device1_mem,
             .size        = DEV1_MEM_SIZE,
             .ID          = "1024_BYTE_RONLY_MEM",
-            .permission  = 0b01
+            .permission  = RONLY_PERMISSION
         },
         [1] = 
         {
             .data_buffer = device2_mem,
             .size        = DEV2_MEM_SIZE,
             .ID          = "1000_BYTE_RW_MEM ",
-            .permission  = 0b11
+            .permission  = RW_PERMISSION
         },
         [2] = 
         {
             .data_buffer = device3_mem,
             .size        = DEV3_MEM_SIZE,
             .ID          = "512_BYTE_WONLY_MEM",
-            .permission  = 0b10
+            .permission  = WONLY_PERMISSION
         },
         [3] = 
         {
             .data_buffer = device4_mem,
             .size        = DEV4_MEM_SIZE,
             .ID          = "512_BYTE_RW_MEM",
-            .permission  = 0b11
+            .permission  = RW_PERMISSION
         }
     }
 };
@@ -94,7 +99,7 @@ int pseudo_open (struct inode *inode_ptr, struct file *file_ptr);
 int pseudo_release (struct inode *inode_ptr, struct file *file_ptr);
 
 
-int check_file_permission (void);
+int check_file_permission(int device_permission, fmode_t mode);
 
 /*file_operations struct*/
 struct file_operations pseudo_fops = {
@@ -224,7 +229,8 @@ int pseudo_open (struct inode *inode_ptr, struct file *file_ptr)
     /*update file private data pointer with the device data pointer*/
     file_ptr->private_data = dev_data;
 
-    err = check_file_permission();
+    /*check if the requested permission compatable with device permission*/
+    err = check_file_permission(dev_data->permission, file_ptr->f_mode);
     
     if(err == 0)
     {
@@ -339,10 +345,26 @@ loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence)
 	return file_ptr->f_pos;
 }
 
-int check_file_permission()
+int check_file_permission(int device_permission, fmode_t request_mode)
 {
+    if(device_permission == RW_PERMISSION)
+        return 0;
     
-    return 0;
+    /*if the device is read only, check if open request mode is read only*/
+    if(device_permission == RONLY_PERMISSION)
+    {
+        if((request_mode && FMODE_READ) && !(request_mode && FMODE_WRITE))
+            return 0;
+    }
+
+    /*if the device is write only, check if open request mode is write only*/
+    if(device_permission == WONLY_PERMISSION)
+    {
+        if((request_mode && FMODE_WRITE) && !(request_mode && FMODE_READ))
+            return 0;
+    }
+
+    return -EPERM;
 }
 
 /*registration section*/
