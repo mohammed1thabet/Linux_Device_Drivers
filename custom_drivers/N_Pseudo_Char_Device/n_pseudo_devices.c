@@ -273,7 +273,7 @@ ssize_t pseudo_read (struct file *file_ptr, char __user *buffer, size_t count, l
 ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t count, loff_t *f_pos)
 {
     struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
-    size_t size = size;
+    size_t size = data_ptr->size;
 
 	pr_info("pseudo_write method called, count:%zu, file position:%lld\n", count, *f_pos);
 
