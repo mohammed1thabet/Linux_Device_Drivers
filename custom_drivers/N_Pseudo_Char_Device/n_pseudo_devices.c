@@ -72,7 +72,7 @@ struct drv_priv_data drv_data = {
         {
             .data_buffer = device1_mem,
             .size        = DEV2_MEM_SIZE,
-            .ID          = "1000_BYTE_RW_MEM ",
+            .ID          = "1024_BYTE_RW_MEM ",
             .permission  = RW_PERMISSION
         },
         [2] = 
