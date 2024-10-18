@@ -9,6 +9,11 @@
 #include <linux/platform_device.h>
 #include "platform.h"
  
+/********functions decleartions*******/
+
+/*device release function*/
+void pseudo_dev_release(struct device*);
+
 
 /********data types definition********/
 
@@ -50,12 +55,6 @@ struct platform_device pseudo_plf_dev1 =
     }
 
 };
-/********functions decleartions*******/
-
-/*device release function*/
-void pseudo_dev_release(struct device*);
-
-
 
 /********functions implementation*******/
 
