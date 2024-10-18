@@ -25,7 +25,8 @@ struct platform_device pseudo_plf_dev0 =
     .id   = 0,
     .dev = 
     {
-        .platform_data = &pseudo_plf_data[0]
+        .platform_data = &pseudo_plf_data[0],
+        .release       = pseudo_dev_release
     }
 
 };
@@ -35,10 +36,19 @@ struct platform_device pseudo_plf_dev1 =
     .id   = 1,
     .dev = 
     {
-        .platform_data = &pseudo_plf_data[1]
+        .platform_data = &pseudo_plf_data[1],
+        .release       = pseudo_dev_release
     }
 
 };
+/********functions decleartions*******/
+
+/*device release function*/
+void pseudo_dev_release(struct device*);
+
+
+
+/********functions implementation*******/
 
 static int __init pseudo_init(void)
 {
@@ -51,6 +61,11 @@ static void __exit pseudo_deinit(void)
 {
     platform_device_unregister(&pseudo_plf_dev0);
     platform_device_unregister(&pseudo_plf_dev1);
+}
+
+void pseudo_dev_release(struct device*)
+{
+    pr_info("%s:platform device released\n",__func__);
 }
 
 /*module registration*/
