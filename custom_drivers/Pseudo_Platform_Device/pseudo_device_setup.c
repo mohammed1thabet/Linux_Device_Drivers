@@ -1,7 +1,16 @@
+/**************************************************************/
+/*psuedo platform device driver                               */
+/*interface with 2 pseudo memory devices using platform driver*/
+/**************************************************************/
+
+/********file includes********/
+
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include "platform.h"
  
+
+/********data types definition********/
 
 struct pseudo_platform_data pseudo_plf_data[PLF_DEV_COUNT] = 
 {
@@ -54,6 +63,7 @@ static int __init pseudo_init(void)
 {
     platform_device_register(&pseudo_plf_dev0);
     platform_device_register(&pseudo_plf_dev1);
+    pr_info("%s:module loaded successfully\n",__func__);
     return 0;
 }
 
@@ -61,6 +71,7 @@ static void __exit pseudo_deinit(void)
 {
     platform_device_unregister(&pseudo_plf_dev0);
     platform_device_unregister(&pseudo_plf_dev1);
+    pr_info("%s:module unloaded\n",__func__);
 }
 
 void pseudo_dev_release(struct device*)
