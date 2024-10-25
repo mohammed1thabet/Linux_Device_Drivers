@@ -128,7 +128,71 @@ static void __exit pseudo_plf_drv_deinit(void)
 
 int pseudo_plf_probe(struct platform_device* plf_dev)
 {
+    int err;
     
+    struct dev_priv_data *new_dev_data;
+    struct pseudo_platform_data *new_plf_data;
+
+    new_plf_data = (struct pseudo_platform_data*)dev_get_platdata(&plf_dev->dev);
+
+    if(new_plf_data == NULL)
+    {
+        pr_info("%s:invalid platform data\n",__func__);
+        return -EINVAL;
+    }
+
+    new_dev_data = devm_kzalloc(&plf_dev->dev, sizeof(*new_dev_data), GFP_KERNEL);
+    if(new_dev_data == NULL)
+    {
+        pr_info("%s:cannot allocate driver private data\n",__func__);
+        return -ENOMEM;
+    }
+
+    memcpy((void*)&new_dev_data->plf_data, (void*)new_plf_data, sizeof(*new_plf_data));
+
+    pr_info("%s device platform data: serial_number:%s\nsize:%ld\npermission:%x",__func__, new_dev_data->plf_data.serial_number, new_dev_data->plf_data.size, new_dev_data->plf_data.permission);
+
+    /*allocate memory for device mem bvuffer*/
+    new_dev_data->data_buffer = devm_kzalloc(&plf_dev->dev, new_dev_data->plf_data.size, GFP_KERNEL);
+    if(new_dev_data->data_buffer == NULL)
+    {
+        pr_info("%s:cannot allocate device memory buffer\n",__func__);
+        return -ENOMEM;
+    }
+
+    /*initalize device number feild*/
+    new_dev_data->dev_num = drv_data.dev_num_base + plf_dev->id;
+
+    /*intialize cdev struct*/
+    cdev_init(&new_dev_data->dev_cdev, &pseudo_fops);
+        
+    /*cdev_init clears all cdev struct elements, so you need to intialize owner after cdev_init*/
+    new_dev_data->dev_cdev.owner = THIS_MODULE;
+
+    /*register the device in VFS*/
+    err = cdev_add(&new_dev_data->dev_cdev, new_dev_data->dev_num, 1);
+    if(err <0)
+    {
+        pr_err("cdev registration failed\n");
+        return err;
+    }
+
+    /*create device files*/
+    new_dev_data->dev_ptr = device_create(drv_data.dev_class, NULL, new_dev_data->dev_num, NULL, "pseudo_char_dev:%d",plf_dev->id);
+    
+    if(IS_ERR(new_dev_data->dev_ptr))
+    {
+        pr_err("device file creation failed\n");
+        err = PTR_ERR(new_dev_data->dev_ptr);
+        cdev_del(&new_dev_data->dev_cdev);
+        return err;
+    }
+
+    /*save driver data in platform device struct*/
+    dev_set_drvdata(&plf_dev->dev, new_dev_data);
+
+    drv_data.devices_count++;
+    pr_info("%s:device is detected\n",__func__);
 
     return 0;
 
@@ -136,6 +200,17 @@ int pseudo_plf_probe(struct platform_device* plf_dev)
 
 int pseudo_plf_remove(struct platform_device* plf_dev)
 {
+    struct dev_priv_data *rm_dev_data = dev_get_drvdata(&plf_dev->dev);
+
+    /*destroy device file*/
+    device_destroy(drv_data.dev_class, rm_dev_data->dev_num);
+    
+    /*delete cdev*/
+    cdev_del(&rm_dev_data->dev_cdev);
+
+    drv_data.devices_count--;
+
+    pr_info("%s:device removed\n",__func__);
     
     return 0;
 }
