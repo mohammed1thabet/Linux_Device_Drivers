@@ -58,29 +58,30 @@ struct platform_device pseudo_plf_dev1 =
 
 /********functions implementation*******/
 
-static int __init pseudo_init(void)
+static int __init pseudo_plf_dev_init(void)
 {
     platform_device_register(&pseudo_plf_dev0);
     platform_device_register(&pseudo_plf_dev1);
-    pr_info("%s:module loaded successfully\n",__func__);
+    pr_info("%s:plf setup module loaded successfully\n",__func__);
     return 0;
 }
 
-static void __exit pseudo_deinit(void)
+static void __exit pseudo_plf_dev_deinit(void)
 {
+    /*if you have too many devices, you can use  platform_add_devices(struct platform_device **devs, int num)*/
     platform_device_unregister(&pseudo_plf_dev0);
     platform_device_unregister(&pseudo_plf_dev1);
-    pr_info("%s:module unloaded\n",__func__);
+    pr_info("%s:plf setup module unloaded\n",__func__);
 }
 
-void pseudo_dev_release(struct device*)
+void pseudo_dev_release(struct device* dev)
 {
     pr_info("%s:platform device released\n",__func__);
 }
 
 /*module registration*/
-module_init(pseudo_init);
-module_exit(pseudo_deinit);
+module_init(pseudo_plf_dev_init);
+module_exit(pseudo_plf_dev_deinit);
 
 /*module description*/
 MODULE_LICENSE("GPL");
