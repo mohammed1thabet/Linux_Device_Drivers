@@ -217,28 +217,135 @@ int pseudo_plf_remove(struct platform_device* plf_dev)
 
 int pseudo_open (struct inode *inode_ptr, struct file *file_ptr)
 {
+    int err;
+    int minor_num;
+    struct dev_priv_data *dev_data;
+
+    pr_info("pseudo_open method called:\n");
+
+    minor_num = MINOR(inode_ptr->i_rdev);
+    pr_info("minor number:%d:\n", minor_num);
     
-	return 0;
+    /*extract pointer to device data using cdev*/
+    dev_data = container_of(inode_ptr->i_cdev, struct dev_priv_data, dev_cdev);
+
+    /*update file private data pointer with the device data pointer*/
+    file_ptr->private_data = dev_data;
+
+    /*check if the requested permission compatable with device permission*/
+    err = check_file_permission(dev_data->plf_data.permission, file_ptr->f_mode);
+    
+    if(err == 0)
+    {
+        pr_info("file opened successfully\n");
+    }
+    else
+    {
+        pr_info("file open failed\n");
+    }
+	return err;
 }
 int pseudo_release (struct inode *inode_ptr, struct file *file_ptr)
 {
+    pr_info("pseudo_release method called:\n");
 	return 0;
 }
 
 ssize_t pseudo_read (struct file *file_ptr, char __user *buffer, size_t count, loff_t *f_pos)
 {
+    struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = data_ptr->plf_data.size;
+
+    pr_info("pseudo_read method called, count:%zu, file position:%lld\n", count, *f_pos);
+
+    /*if the count exeeds the memory size truncate the count*/
+    if((count + *f_pos) > size)
+        count = size - *f_pos;
     
-	return 0;
+    /*copy data, note that this code is not thread safe*/
+    if(copy_to_user(buffer, data_ptr->data_buffer+(*f_pos), count) > 0)
+        return -EFAULT;
+
+    /*update file position*/
+    *f_pos = *f_pos + count;
+
+    pr_info("number of bytes have been read%zu, file position:%lld\n", count, *f_pos);
+	return count;
 }
 
 ssize_t pseudo_write (struct file *file_ptr, const char __user *buffer, size_t count, loff_t *f_pos)
 {
-	return 0;
+	struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = data_ptr->plf_data.size;
+
+	pr_info("pseudo_write method called, count:%zu, file position:%lld\n", count, *f_pos);
+
+    if(*f_pos == size)
+    {
+        /*EOF*/
+        pr_info("no space left\n");
+        return -ENOMEM;
+    }
+    
+    /*if the count exeeds the memory size truncate the count*/
+    if((count + *f_pos) > size)
+        count = size - *f_pos;
+    
+    /*copy data, note that this code is not thread safe*/
+    if(copy_from_user(data_ptr->data_buffer+(*f_pos), buffer, count) > 0)
+        return -EFAULT;
+
+    /*update file position*/
+    *f_pos = *f_pos + count;
+        
+    pr_info("number of bytes have been written%zu, file position:%lld\n", count, *f_pos);
+	return count;
 }
 
 loff_t pseudo_llseek (struct file *file_ptr, loff_t offset, int whence)
 {
-	return 0;
+	struct dev_priv_data *data_ptr = (struct dev_priv_data *)file_ptr->private_data;
+    size_t size = data_ptr->plf_data.size;
+    loff_t new_pos;
+
+    pr_info("pseudo_llseek method called, current f_pos:%lld\n", file_ptr->f_pos);
+    
+    switch (whence)
+    {
+        case SEEK_SET:
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if((offset > size) || (offset < 0))
+                return -EINVAL;
+
+            file_ptr->f_pos = offset;
+        break;
+
+        case SEEK_CUR:
+            new_pos = file_ptr->f_pos +offset;
+            
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if( (new_pos > size) || (new_pos < 0) )
+                return -EINVAL;
+
+            file_ptr->f_pos = new_pos;
+        break;
+        
+        case SEEK_END:
+            new_pos = size + offset;
+
+            /*return error if the file position will go beyond file memory or if it will be <0*/
+            if( (new_pos > size) || (new_pos < 0) )
+                return -EINVAL;
+
+            file_ptr->f_pos = new_pos;
+        break;
+        
+        default:
+            return -EINVAL;
+        break;
+    }
+    pr_info("new f_pos:%lld\n", file_ptr->f_pos);
+	return file_ptr->f_pos;
 }
 
 int check_file_permission(int device_permission, fmode_t request_mode)
