@@ -58,18 +58,71 @@ struct file_operations pseudo_fops = {
     .owner      = THIS_MODULE
 };
 
+struct platform_driver pseudo_plf_drv ={
+    .probe  = pseudo_plf_probe,
+    .remove = pseudo_plf_remove,
+    .driver =
+    {
+        .name = "pseudo-char-dev"
+    }
+};
 
 /*code section*/
 static int __init pseudo_plf_drv_init(void)
 {
+    int err;
+    /*intitalize devices count to zero*/
+    drv_data.devices_count =0;
+
+    pr_info("%s:start module intialization \n", __func__);
     
-    return 0;
+    /*allocate device number*/
+    err = alloc_chrdev_region(&drv_data.dev_num_base, 0, MAX_NUMBER_OF_DEVICES, "pseudo memory platform devs");
+    if(err <0)
+    {
+        pr_err("%s:chrdev alloc failed\n", __func__);
+        goto alloc_fail;
+    }
+    
+    /*create device class*/
+    drv_data.dev_class = class_create("pseudo_plf_dev_class");
+
+    /*if class creation failed, it doesnt return null, it returns pointer to error code*/
+    if(IS_ERR(drv_data.dev_class))
+    {
+        pr_err("%s:class creation failed\n", __func__);
+        err = PTR_ERR(drv_data.dev_class);
+        goto unreg_dev;
+    }
+
+    /*register the platform driver*/
+    platform_driver_register(&pseudo_plf_drv);
+
+    pr_info("%s:plf drv module loaded successfully\n",__func__);
+    return err;
+
+unreg_dev:
+    /*dealloc device number*/
+    unregister_chrdev_region(drv_data.dev_num_base, MAX_NUMBER_OF_DEVICES);
+
+alloc_fail:
+    pr_info("%s:module intialization failed\n", __func__);
+    return err;
 
 }
 
 static void __exit pseudo_plf_drv_deinit(void)
 {
+    /*unregister the platform driver*/
+    platform_driver_unregister(&pseudo_plf_drv);
     
+    /*distroy driver class*/
+    class_destroy(drv_data.dev_class);
+    
+    /*dealloc device number*/
+    unregister_chrdev_region(drv_data.dev_num_base, MAX_NUMBER_OF_DEVICES);
+
+    pr_info("%s:plf drv module unloaded\n",__func__);
 }
 
 
