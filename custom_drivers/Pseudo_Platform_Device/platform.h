@@ -3,6 +3,7 @@
 
 /*number of platform devices*/
 #define PLF_DEV_COUNT           2
+#define MAX_NUMBER_OF_DEVICES   5
 
 /*device permission*/
 #define RONLY_PERMISSION        0b01
